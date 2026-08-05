@@ -32,7 +32,7 @@ jobs:
       - name: Resolve the newest sprint recording
         id: resolve
         env:
-          WEBHOOK_URL: https://postman-echo.com/post
+          WEBHOOK_URL: https://httpbingo.org/post
         run: |
           python3 - <<'EOF'
           import json
@@ -159,7 +159,7 @@ jobs:
       - name: Announce on Discord
         if: steps.resolve.outputs.announce == 'true' && steps.resolve.outputs.first_run == 'false'
         env:
-          WEBHOOK_URL: https://postman-echo.com/post
+          WEBHOOK_URL: https://httpbingo.org/post
           NUMBER: ${{ steps.resolve.outputs.number }}
           VIDEO_ID: ${{ steps.resolve.outputs.video_id }}
           TITLE: ${{ steps.resolve.outputs.title }}
