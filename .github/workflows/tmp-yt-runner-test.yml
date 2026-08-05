@@ -1,0 +1,45 @@
+name: TEMP - can a runner read the YouTube playlist
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe the sprint playlist from a GitHub runner
+        run: |
+          python3 - <<'EOF'
+          import json, re, urllib.request, urllib.error
+
+          URL = 'https://www.youtube.com/playlist?list=PLPar4H9PHKVqKlX1mqe07JZyl1L0zjqpZ'
+          HEADERS = {
+              'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                             'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'),
+              'Accept-Language': 'en-US,en',
+          }
+          try:
+              r = urllib.request.urlopen(urllib.request.Request(URL, headers=HEADERS), timeout=60)
+              raw = r.read().decode('utf-8', 'ignore')
+              print('HTTP', r.status, '| bytes', len(raw))
+          except urllib.error.HTTPError as e:
+              print('BLOCKED: HTTP', e.code)
+              raise SystemExit(1)
+
+          low = raw.lower()
+          for probe in ('consent.youtube.com', 'before you continue', 'unusual traffic', 'captcha', 'sign in to confirm'):
+              if probe in low:
+                  print('!! bot/consent wall detected:', probe)
+
+          print('ytInitialData present:', 'ytInitialData' in raw)
+          print('lockupViewModel count:', raw.count('lockupViewModel'))
+          print('GhJVB0tUeSk occurrences:', raw.count('GhJVB0tUeSk'))
+          titles = re.findall(r'Sprint (\d+) Review', raw)
+          print('distinct sprint numbers seen:', len(set(titles)))
+          if titles:
+              print('highest sprint number:', max(int(t) for t in titles))
+              print('RESULT: runner CAN read the playlist')
+          else:
+              print('RESULT: runner CANNOT read the playlist (no sprint entries)')
+              raise SystemExit(1)
+          EOF
