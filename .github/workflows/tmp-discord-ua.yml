@@ -1,0 +1,28 @@
+name: TEMP - Discord UA check from a runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST to an invalid webhook with and without a User-Agent
+        run: |
+          python3 - <<'EOF'
+          import json, urllib.request, urllib.error
+          # no real credential needed: a Cloudflare block (1010) and a Discord
+          # JSON error (10015 unknown webhook) are trivially distinguishable
+          URL = 'https://discord.com/api/webhooks/000000000000000000/invalidtokenforprobe'
+          body = json.dumps({'content': 'probe', 'allowed_mentions': {'parse': []}}).encode()
+          for label, headers in [
+              ('WITHOUT User-Agent', {'Content-Type': 'application/json'}),
+              ('WITH User-Agent   ', {'Content-Type': 'application/json',
+                                      'User-Agent': 'TinaCMS-SprintAnnouncer (+https://github.com/tinacms/tinacms, 1.0)'}),
+          ]:
+              try:
+                  r = urllib.request.urlopen(urllib.request.Request(URL, data=body, headers=headers), timeout=30)
+                  print(label, '-> HTTP', r.status)
+              except urllib.error.HTTPError as e:
+                  print(label, '-> HTTP', e.code, '|', e.read().decode()[:120].replace('\n',' '))
+          EOF
